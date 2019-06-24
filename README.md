@@ -1,4 +1,16 @@
 # catalyst
+echo "\n \n/////////////////////////////////////////////////////////////////////\n";
+echo "//                    WELCOME to php CLI                          ///\n";
+echo "// commands:  php solutions.php                                   ///\n";
+echo "// argv:  --create_table={tablename}    --u={DBusername}          ///\n";
+echo "//        --p={DBpassword} --h={DBhost}   --dry_run    --h        ///\n";
+echo "// example: php --h                                               ///\n";
+echo "// example: php solutions.php   --dry_run                         ///\n";
+echo "// Note:php solutions.php --u --h --p are required to execute file///\n";
+echo "///////////////////////////////////////////////////////////////////// \n \n";
+
+
+
 
 Programming Evaluation for:
 PHP

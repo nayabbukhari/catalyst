@@ -1,5 +1,5 @@
 <?php
-//php solutions.php --u=nayab -p=Allh_123 --h=localhost --create_table --db=catalyst --file=users.csv
+//php solutions.php --u=nayab --p=Allh_123 --h=localhost --create_table --f=users.csv --dry_run --help
 /**
  * @author Engr. Nayab Bukhari, Syed
  * @copyright 2019
@@ -15,8 +15,6 @@ class catalyst extends mysqli
     private $db_host;
     private $db_username;
     private $db_password;
-    private $db_primaryDatabase;
-    public $db_primaryTable;
     public $filename;
     public $dry_run;
     public $create_table;
@@ -46,15 +44,12 @@ class catalyst extends mysqli
                 ($k == 'u') ? ($this->db_username = $d) : '';
                 ($k == 'p') ? ($this->db_password = $d) : '';
                 ($k == 'h') ? ($this->db_host = $d) : '';
-                ($k == 'db') ? ($this->db_primaryDatabase = $d) : ($this->db_primaryDatabase = 'catalyst');
                 ($k == 'f') ? ($this->filename = $d) : '';
                 ($k == 'dry') ? ($this->dry_run = true) : '';
                 ($k == 'create') ? ($this->create_table = true) : '';
                 ($k == 'help') ? ($this->help = true) : '';
             }
         }
-        //static table name
-        $this->db_primaryTable =  'users';
     }
 
     /**
@@ -67,7 +62,6 @@ class catalyst extends mysqli
               --u              Set Database user name\n
               --p              Set Database user password\n
               --h              Set Database host \n
-              --db             Set Database name - Optional parameter \n
               --create_table   Run script to create table if not exists \n
               --f              Set CSV file name <file>. \n
               --dry_run        Run script without any DB option. \n ";
@@ -83,10 +77,10 @@ class catalyst extends mysqli
         $dbConnection = new mysqli($this->db_host, $this->db_username, $this->db_password);
 
         // Create database
-        $sql = "CREATE DATABASE IF NOT EXISTS $this->db_primaryDatabase DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci";
+        $sql = "CREATE DATABASE IF NOT EXISTS catalyst DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci";
         if (empty($dbConnection->query($sql))) {
             //update database connection with default database.
-            $dbConnection = new mysqli($this->db_host, $this->db_username, $this->db_password, $this->db_primaryDatabase);
+            $dbConnection = new mysqli($this->db_host, $this->db_username, $this->db_password, "catalyst");
         }
             return $dbConnection;
     }
@@ -96,14 +90,14 @@ class catalyst extends mysqli
      * @return bool|int
      */
     function create_table(){
-        $sql = "CREATE TABLE IF NOT EXISTS $this->db_primaryTable (
+       $dbConnection = new mysqli($this->db_host, $this->db_username, $this->db_password, "catalyst");;
+        $sql = "CREATE TABLE IF NOT EXISTS users (
                 id int(11) AUTO_INCREMENT, name varchar(15) NOT NULL,
                 surname varchar(15) NOT NULL, email varchar(255) NOT NULL,
-                PRIMARY KEY  (id), UNIQUE KEY `email` (`email`) )";
+                PRIMARY KEY  (id), UNIQUE KEY email(email))";
 
-        if (!empty($this->create_db()->query($sql))) {
-            $stdout = fwrite(STDERR, "Table : $this->db_primaryTable is created/existed\n");
-            return $this->db_primaryTable;
+        if ($dbConnection->query($sql)) {
+            $stdout = fwrite(STDERR, "Table : users is created/existed\n");
         }
     }
 
@@ -112,9 +106,9 @@ class catalyst extends mysqli
      * @return bool  //insert_record
      */
     function insert_record($sql,$name,$surname, $email ){
-        //$dbConnection = new mysqli($this->db_host, $this->db_username, $this->db_password, $this->db_primaryDatabase);
-        if ($this->create_db()->query($sql)) {
-            fwrite(STDERR, "New record email($email) saved\n \n");
+        $dbConnection = new mysqli($this->db_host, $this->db_username, $this->db_password, "catalyst");;
+        if ($dbConnection->query($sql)) {
+            fwrite(STDERR, "New record email($email) saved\n");
         }else{
             $stdout = fwrite(STDERR, "Email($email) already in DB\n");
         }
@@ -128,6 +122,8 @@ class catalyst extends mysqli
         $this->arguments($_SERVER['argv']);
         $this->set_var($_SERVER['argv']);
 
+
+
         if($this->help==true){
             $this->helps();
             exit();
@@ -137,13 +133,14 @@ class catalyst extends mysqli
             $stdout = fwrite(STDERR, "Live Mode Enabled \n");
             if($this->db_username and $this->db_password and $this->db_host) {
                 $this->create_db();
+                $dbConnection = new mysqli($this->db_host, $this->db_username, $this->db_password, "catalyst");
             }
 
            if($this->create_table == true){
                 $this->create_table();
             }
 
-           if(($this->create_db() and $this->filename)) {
+           if(($dbConnection and $this->filename)) {
                 $row = 1;
                 if (($handle = fopen($this->filename, "r")) !== FALSE) {
                     while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
@@ -159,7 +156,7 @@ class catalyst extends mysqli
                             AND (substr_count($email, "@") == 1)
                             AND ($row >= 2)) {
 
-                            $sql = "INSERT INTO $this->db_primaryTable(name, surname, email)
+                            $sql = "INSERT INTO users(name, surname, email)
                                     VALUES('" . $name . "','" . $surname . "','" . $email . "')";
                             $this->insert_record($sql, $name, $surname, $email);
                             }
@@ -167,10 +164,10 @@ class catalyst extends mysqli
                     }
                 }
                 fclose($handle);
+               $dbConnection->close();
             }
     }else{
             $stdout = fwrite(STDERR, "Dry Mode Enabled \n");
-            if(($this->create_db() and $this->filename)) {
                 $row = 1;
                 if (($handle = fopen($this->filename, "r")) !== FALSE) {
                     while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
@@ -190,12 +187,10 @@ class catalyst extends mysqli
                             $stdout = fwrite(STDERR, "$name $surname has not valid email($email)\n");
                         }
                         $row++;
-                    }
                 }
                 fclose($handle);
             }
         }
-        $this->create_db()->close();
     }
 }
 
